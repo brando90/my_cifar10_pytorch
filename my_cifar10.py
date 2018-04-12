@@ -7,6 +7,8 @@ import torchvision.transforms as transforms
 
 from math import inf
 
+from pdb import set_trace as st
+
 def error_criterion(outputs,labels):
     max_vals, max_indices = torch.max(outputs,1)
     train_error = (max_indices != labels).sum().data[0]/max_indices.size()[0]
@@ -34,8 +36,7 @@ def extract_data(enable_cuda,data,wrap_in_variable=False):
         inputs, labels = Variable(inputs), Variable(labels)
     return inputs, labels
 
-def train_and_track_stats(nb_epochs, trainloader,testloader, net,optimizer,criterion,error_criterion, iterations=inf):
-    enable_cuda = args.enable_cuda
+def train_and_track_stats(enable_cuda, nb_epochs, trainloader,testloader, net,optimizer,criterion,error_criterion, iterations=inf):
     ''' Add stats before training '''
     train_loss_epoch, train_error_epoch = evalaute_mdl_data_set(criterion, error_criterion, net, trainloader, enable_cuda, iterations)
     test_loss_epoch, test_error_epoch = evalaute_mdl_data_set(criterion, error_criterion, net, testloader, enable_cuda, iterations)
@@ -45,7 +46,6 @@ def train_and_track_stats(nb_epochs, trainloader,testloader, net,optimizer,crite
     print('about to start training')
     for epoch in range(nb_epochs):  # loop over the dataset multiple times
         running_train_loss,running_train_error = 0.0,0.0
-        M_train = 0
         for i,data_train in enumerate(trainloader):
             ''' zero the parameter gradients '''
             optimizer.zero_grad()
@@ -65,25 +65,34 @@ def train_and_track_stats(nb_epochs, trainloader,testloader, net,optimizer,crite
     return train_loss_epoch, train_error_epoch, test_loss_epoch, test_error_epoch
 
 def main():
-    ##
+    enable_cuda = True
+    print('running main')
+    num_workers = 0
     ''' Get Data set '''
+    batch_size_test = 1
+    batch_size_train = 1
     data_path = './data'
     transform = [transforms.ToTensor(),transforms.Normalize( (0.5, 0.5, 0.5), (0.5, 0.5, 0.5) )]
     transform = transforms.Compose(transform)
     trainset = torchvision.datasets.CIFAR10(root=data_path, train=True,download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size_train,shuffle=shuffle_train, num_workers=num_workers)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size_train,shuffle=True, num_workers=num_workers)
     testset = torchvision.datasets.CIFAR10(root=data_path, train=False,download=True, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size_test,shuffle=suffle_test, num_workers=num_workers)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size_test,shuffle=False, num_workers=num_workers)
     ''' Get model '''
-    C,H,W = 3,32,32
-    net = nn.Sequential(
-        torch.nn.Conv2d(C,13,5), #(in_channels, out_channels, kernel_size),
-        torch.nn.Linear(13, 10)
+    net = torch.nn.Sequential(
+        torch.nn.Conv2d(3,13,5), #(in_channels, out_channels, kernel_size),
+        torch.nn.Linear(28*28*13, 10)
     )
+    net.cuda()
     ''' Train '''
     nb_epochs = 10
     lr = 0.1
-    error_criterion = error_criterion
+    err_criterion = error_criterion
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.0)
-    train_and_track_stats(nb_epochs, trainloader,testloader, net,optimizer,criterion,error_criterion, iterations=inf)
+    train_and_track_stats(enable_cuda, nb_epochs, trainloader,testloader, net,optimizer,criterion,err_criterion, iterations=inf)
+    ''' Done '''
+    print('Done')
+
+if __name__ == '__main__':
+    main()
