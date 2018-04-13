@@ -11,8 +11,8 @@ from pdb import set_trace as st
 
 def error_criterion(outputs,labels):
     max_vals, max_indices = torch.max(outputs,1)
-    train_error = (max_indices != labels).sum().data[0]/max_indices.size()[0]
-    return train_error
+    error = (max_indices != labels).float().sum()/max_indices.size()[0]
+    return error.data[0]
 
 def evalaute_mdl_data_set(loss,error,net,dataloader,enable_cuda,iterations=inf):
     '''
